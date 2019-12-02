@@ -1,0 +1,155 @@
+##This script is for the final project of Coursera "Getting
+##"Getting and Cleaning Data" Course. The instructions are as follows:
+
+##1. Merges the training and the test sets to create one data set.
+##2. Extracts only the measurements on the mean and standard deviation for each measurement.
+##3. Uses descriptive activity names to name the activities in the data set
+##4. Appropriately labels the data set with descriptive variable names.
+##5. From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+
+
+library(tidyr)
+library(dplyr)
+
+#####################################################
+##   Initialize vars, download zip and unzip files
+#####################################################
+
+##Initialize all variables with hard-coded values
+dirName <- "data"
+dirPath <- paste0("./",dirName,"/")
+zipURL <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+destFileName <- "UciHarDataset.zip"
+
+##names of all unzipped files
+featureFilePath <- "./data/UCI HAR Dataset/features.txt"
+activitiesFilePath <- "./data/UCI HAR Dataset/activity_labels.txt"
+subjectTrainFilePath <- "./data/UCI HAR Dataset/train/subject_train.txt"
+subjectTestFilePath <-  "./data/UCI HAR Dataset/test/subject_test.txt"
+testFeatureDataFilePath <- "./data/UCI HAR Dataset/test/X_test.txt"
+trainFeatureDataFilePath <- "./data/UCI HAR Dataset/train/X_train.txt"
+testActivityDataFilePath <- "./data/UCI HAR Dataset/test/y_test.txt"
+trainActivityDataFilePath <- "./data/UCI HAR Dataset/train/y_train.txt"
+
+##check data directory. If it does not exist, create it.
+if(!file.exists(dirName)){
+  dir.create(dirName)
+}
+
+##download zip file automatically. Should not be a manual step.
+destFilePath <- paste0(dirPath,destFileName)
+download.file(zipURL,destFilePath)
+
+#unzip files into current directory
+unzip(destFilePath, exdir="./data")
+
+#####################################################
+##  Read data from files
+#####################################################
+#Load the feature set
+message("Loading features....")
+features <- read.table(featureFilePath, header = FALSE)
+names(features) <- c("id", "label")
+
+##format feature labels for ask #4
+
+features <- features %>% 
+  #use mixedCaps where relevant
+  mutate(label = sub("mean","Mean", label) ) %>% 
+  mutate(label= sub("std","Std", label))  %>% 
+  mutate(label= sub("max", "Max", label))  %>% 
+  mutate(label= sub("min","Min", label))  %>% 
+  mutate(label= sub("energy", "Energy", label)) %>% 
+  mutate(label= sub("skewness","Skewness", label))  %>% 
+  mutate(label= sub("kurtosis","Kurtosis", label))  %>% 
+  mutate(label= sub("entropy", "Entropy", label))  %>% 
+  mutate(label= sub("bands", "Bands", label))  %>% 
+  mutate(label= sub("mad","Mad", label)) %>%
+  #remove uneeded special characters
+  mutate(label=gsub("[()\\-]","",label)) %>% 
+  #use underscore instead of comma for features with sets of numbers
+  mutate(label = gsub(",","_",label))
+
+##Load Actitivties File
+
+activities <- read.table(activitiesFilePath, header = FALSE)
+names(activities) <- c("id", "label")
+
+##########################################
+##Load and transform training set data
+##########################################
+
+message("Loading training data sets...")
+rawTrainDataSet <- read.table(trainFeatureDataFilePath, header = FALSE)
+rawTrainActivitiesDataSet <- read.table(trainActivityDataFilePath, header = FALSE)
+rawTrainSubjectDataSet <- read.table(subjectTrainFilePath, header = FALSE)
+
+##all should be the same dimension, otherwise show a warning message
+if(nrow(rawTrainDataSet) != nrow(rawTrainActivitiesDataSet) | nrow(rawTrainDataSet) != nrow(rawTrainSubjectDataSet))
+    message("WARNING: Train data sets are not all the same length!!!")
+if(ncol(rawTrainDataSet) != nrow(features))
+    message("WARNING: Train data set may not have correct number of features!")
+
+##Define headers in all data sets
+names(rawTrainDataSet) <- features$label
+names(rawTrainActivitiesDataSet) <- c("ActivityId")
+names(rawTrainSubjectDataSet) <- c("SubjectId")
+
+##Merge Data into a single data frame
+
+newTrainDataSet <- cbind(rawTrainDataSet,rawTrainActivitiesDataSet, rawTrainSubjectDataSet)
+
+###########################################
+##Load and transform test set data
+###########################################
+
+message("Loading test data sets...")
+rawTestDataSet <- read.table(testFeatureDataFilePath, header = FALSE)
+rawTestActivitiesDataSet <- read.table(testActivityDataFilePath, header = FALSE)
+rawTestSubjectDataSet <- read.table(subjectTestFilePath, header = FALSE)
+
+##all should be the same dimension, otherwise show a warning message
+if(nrow(rawTestDataSet) != nrow(rawTestActivitiesDataSet) | nrow(rawTestDataSet) != nrow(rawTestSubjectDataSet))
+  message("WARNING: Test data sets are not all the same length!!!")
+if(ncol(rawTestDataSet) != nrow(features))
+  message("WARNING: Test data set may not have correct number of features!")
+
+##Define headers in all data sets
+names(rawTestDataSet) <- features$label
+names(rawTestActivitiesDataSet) <- c("ActivityId")
+names(rawTestSubjectDataSet) <- c("SubjectId")
+
+##Merge Data into a single data frame
+
+newTestDataSet <- cbind(rawTestDataSet,rawTestActivitiesDataSet, rawTestSubjectDataSet)
+
+######################################
+## Combine Test and Train Data
+######################################
+
+message("Merging data....")
+##For instruction #1
+newDataSet <- rbind(newTrainDataSet, newTestDataSet)
+
+##extract only mean and standard deviation for each measurement
+##for instruction #2
+
+##Note: Select in dplyr did not work because there were duplicate 
+##variable names in the data set!!!! 
+newDataSet <- newDataSet[grep("Mean|Std|ActivityId|SubjectId", names(newDataSet))]
+
+##Show Activity labels 
+##For Instruction #3
+newDataSet <- merge(newDataSet, activities, by.x = "ActivityId", by.y = "id", all=TRUE)
+##rename column
+newDataSet <- rename(newDataSet, "activity" = label)
+
+##################################################
+##Create New Tidy Data Set
+##With the average of each variable 
+##for each activity and each subject.
+##################################################
+
+message("Creating tidy data....")
+newTidyDataSet <- newDataSet %>% group_by(activity,SubjectId) %>% summarize_all(list(mean=mean))
+write.table(newTidyDataSet, "TidyDataSummary.txt", row.names = FALSE)

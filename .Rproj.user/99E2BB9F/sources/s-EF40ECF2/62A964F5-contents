@@ -1,0 +1,22 @@
+unzippedFilePath <- "./data/household_power_consumption.txt"
+
+
+library(dplyr)
+library(lubridate)
+
+power <- read.table(unzippedFilePath, sep = ";", header=TRUE) %>% 
+  filter(as.character(Date) %in% c("1/2/2007", "2/2/2007"))
+
+
+#Format dates
+power$Date <- as.Date(power$Date, format="%d/%m/%Y")
+
+#Subset data for 2/1/2007 and 2/2/2007
+df <- power
+df$Global_active_power <- as.numeric(as.character(df$Global_active_power))
+df$Global_reactive_power <- as.numeric(as.character(df$Global_reactive_power))
+df$Voltage <- as.numeric(as.character(df$Voltage))
+df %>% mutate(timestamp=as.POSIXct(paste(Date, Time)), "%d/%m/%Y %H:%M:%S")
+df$Sub_metering_1 <- as.numeric(as.character(df$Sub_metering_1))
+df$Sub_metering_2 <- as.numeric(as.character(df$Sub_metering_2))
+df$Sub_metering_3 <- as.numeric(as.character(df$Sub_metering_3))

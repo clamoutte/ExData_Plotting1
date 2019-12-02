@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1575299574929.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "940623656",
+    "id" : "211F6AE9",
+    "lastKnownWriteTime" : 1575326375,
+    "last_content_update" : 1575326375942,
+    "path" : "~/Documents/Coursera/Course4/ExData_Plotting1/plot1.R",
+    "project_path" : "plot1.R",
+    "properties" : {
+        "cursorPosition" : "58,0",
+        "scrollLine" : "39",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
